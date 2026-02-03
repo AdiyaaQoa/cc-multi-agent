@@ -1,4 +1,4 @@
-# multi-agent-shogun
+# multi-agent-grid
 
 <div align="center">
 
@@ -18,7 +18,7 @@
 
 ## これは何？
 
-**multi-agent-shogun** は、複数の Claude Code インスタンスを同時に実行し、戦国時代の軍制のように統率するシステムです。
+**multi-agent-grid** は、複数の Claude Code インスタンスを同時に実行し、サイバーパンク風のネットワーク構造で統率するシステムです。
 
 **なぜ使うのか？**
 - 1つの命令で、8体のAIワーカーが並列で実行
@@ -27,21 +27,21 @@
 - ダッシュボードでリアルタイム進捗確認
 
 ```
-      あなた（上様）
+      あなた（クライアント）
            │
            ▼ 命令を出す
     ┌─────────────┐
-    │   SHOGUN    │  ← 命令を受け取り、即座に委譲
+    │    BOSS     │  ← 命令を受け取り、即座に委譲
     └──────┬──────┘
            │ YAMLファイル + tmux
     ┌──────▼──────┐
-    │    KARO     │  ← タスクをワーカーに分配
+    │  OPERATOR   │  ← タスクをワーカーに分配
     └──────┬──────┘
            │
   ┌─┬─┬─┬─┴─┬─┬─┬─┐
   │1│2│3│4│5│6│7│8│  ← 8体のワーカーが並列実行
   └─┴─┴─┴─┴─┴─┴─┴─┘
-      ASHIGARU
+      AGENTS (a1-a8)
 ```
 
 ---
@@ -61,9 +61,9 @@
 
 📥 **リポジトリをダウンロード**
 
-[ZIPダウンロード](https://github.com/yohey-w/multi-agent-shogun/archive/refs/heads/main.zip) して `C:\tools\multi-agent-shogun` に展開
+[ZIPダウンロード](https://github.com/AdiyaaQoa/cc-multi-agent/archive/refs/heads/main.zip) して `C:\tools\multi-agent-grid` に展開
 
-*または git を使用:* `git clone https://github.com/yohey-w/multi-agent-shogun.git C:\tools\multi-agent-shogun`
+*または git を使用:* `git clone https://github.com/AdiyaaQoa/cc-multi-agent.git C:\tools\multi-agent-grid`
 
 </td>
 </tr>
@@ -92,7 +92,7 @@
 🐧 **Ubuntu を開いて以下を実行**（初回のみ）
 
 ```bash
-cd /mnt/c/tools/multi-agent-shogun
+cd /mnt/c/tools/multi-agent-grid
 ./first_setup.sh
 ```
 
@@ -106,10 +106,10 @@ cd /mnt/c/tools/multi-agent-shogun
 </td>
 <td>
 
-✅ **出陣！**
+✅ **デプロイ！**
 
 ```bash
-./shutsujin_departure.sh
+./deploy.sh
 ```
 
 </td>
@@ -121,8 +121,8 @@ cd /mnt/c/tools/multi-agent-shogun
 **Ubuntuターミナル**（WSL）を開いて実行：
 
 ```bash
-cd /mnt/c/tools/multi-agent-shogun
-./shutsujin_departure.sh
+cd /mnt/c/tools/multi-agent-grid
+./deploy.sh
 ```
 
 ---
@@ -134,8 +134,8 @@ cd /mnt/c/tools/multi-agent-shogun
 
 ```bash
 # 1. リポジトリをクローン
-git clone https://github.com/yohey-w/multi-agent-shogun.git ~/multi-agent-shogun
-cd ~/multi-agent-shogun
+git clone https://github.com/AdiyaaQoa/cc-multi-agent.git ~/multi-agent-grid
+cd ~/multi-agent-grid
 
 # 2. スクリプトに実行権限を付与
 chmod +x *.sh
@@ -147,8 +147,8 @@ chmod +x *.sh
 ### 毎日の起動
 
 ```bash
-cd ~/multi-agent-shogun
-./shutsujin_departure.sh
+cd ~/multi-agent-grid
+./deploy.sh
 ```
 
 </details>
@@ -187,15 +187,15 @@ wsl --install
 |-----------|------|---------------|
 | `install.bat` | Windows: WSL2 + Ubuntu のセットアップ | 初回のみ |
 | `first_setup.sh` | tmux、Node.js、Claude Code CLI のインストール + Memory MCP設定 | 初回のみ |
-| `shutsujin_departure.sh` | tmuxセッション作成 + Claude Code起動 + 指示書読み込み | 毎日 |
+| `deploy.sh` | tmuxセッション作成 + Claude Code起動 + 指示書読み込み | 毎日 |
 
 ### `install.bat` が自動で行うこと：
 - ✅ WSL2がインストールされているかチェック（未インストールなら案内）
 - ✅ Ubuntuがインストールされているかチェック（未インストールなら案内）
 - ✅ 次のステップ（`first_setup.sh` の実行方法）を案内
 
-### `shutsujin_departure.sh` が行うこと：
-- ✅ tmuxセッションを作成（shogun + multiagent）
+### `deploy.sh` が行うこと：
+- ✅ tmuxセッションを作成（boss + grid）
 - ✅ 全エージェントでClaude Codeを起動
 - ✅ 各エージェントに指示書を自動読み込み
 - ✅ キューファイルをリセットして新しい状態に
@@ -229,42 +229,42 @@ wsl --install
 
 | エージェント | 役割 | 数 |
 |-------------|------|-----|
-| 🏯 将軍（Shogun） | 総大将 - あなたの命令を受ける | 1 |
-| 📋 家老（Karo） | 管理者 - タスクを分配 | 1 |
-| ⚔️ 足軽（Ashigaru） | ワーカー - 並列でタスク実行 | 8 |
+| 🎯 Boss（ボス） | 総統括 - あなたの命令を受ける | 1 |
+| 📋 Operator（オペレーター） | 管理者 - タスクを分配 | 1 |
+| ⚡ Agent（エージェント） | ワーカー - 並列でタスク実行 | 8 |
 
 tmuxセッションが作成されます：
-- `shogun` - ここに接続してコマンドを出す
-- `multiagent` - ワーカーがバックグラウンドで稼働
+- `boss` - ここに接続してコマンドを出す
+- `grid` - ワーカーがバックグラウンドで稼働
 
 ---
 
 ## 📖 基本的な使い方
 
-### Step 1: 将軍に接続
+### Step 1: Bossに接続
 
-`shutsujin_departure.sh` 実行後、全エージェントが自動的に指示書を読み込み、作業準備完了となります。
+`deploy.sh` 実行後、全エージェントが自動的に指示書を読み込み、作業準備完了となります。
 
-新しいターミナルを開いて将軍に接続：
+新しいターミナルを開いてBossに接続：
 
 ```bash
-tmux attach-session -t shogun
+tmux attach-session -t boss
 ```
 
 ### Step 2: 最初の命令を出す
 
-将軍は既に初期化済み！そのまま命令を出せます：
+Bossは既に初期化済み！そのまま命令を出せます：
 
 ```
 JavaScriptフレームワーク上位5つを調査して比較表を作成せよ
 ```
 
-将軍は：
+Bossは：
 1. タスクをYAMLファイルに書き込む
-2. 家老（管理者）に通知
+2. Operator（管理者）に通知
 3. 即座にあなたに制御を返す（待つ必要なし！）
 
-その間、家老はタスクを足軽ワーカーに分配し、並列実行します。
+その間、Operatorはタスクをエージェントワーカーに分配し、並列実行します。
 
 ### Step 3: 進捗を確認
 
@@ -274,9 +274,9 @@ JavaScriptフレームワーク上位5つを調査して比較表を作成せよ
 ## 進行中
 | ワーカー | タスク | 状態 |
 |----------|--------|------|
-| 足軽 1 | React調査 | 実行中 |
-| 足軽 2 | Vue調査 | 実行中 |
-| 足軽 3 | Angular調査 | 完了 |
+| Agent 1 | React調査 | 実行中 |
+| Agent 2 | Vue調査 | 実行中 |
+| Agent 3 | Angular調査 | 完了 |
 ```
 
 ---
@@ -289,16 +289,16 @@ JavaScriptフレームワーク上位5つを調査して比較表を作成せよ
 
 ```
 あなた: 「5つのMCPサーバを調査せよ」
-→ 5体の足軽が同時に調査開始
+→ 5体のエージェントが同時に調査開始
 → 数時間ではなく数分で結果が出る
 ```
 
 ### 🔄 2. ノンブロッキングワークフロー
 
-将軍は即座に委譲して、あなたに制御を返します：
+Bossは即座に委譲して、あなたに制御を返します：
 
 ```
-あなた: 命令 → 将軍: 委譲 → あなた: 次の命令をすぐ出せる
+あなた: 命令 → Boss: 委譲 → あなた: 次の命令をすぐ出せる
                                     ↓
                     ワーカー: バックグラウンドで実行
                                     ↓
@@ -333,7 +333,7 @@ VSCode拡張のClaude Codeはスクショを貼り付けて事象を説明でき
 screenshot:
   path: "/mnt/c/Users/あなたの名前/Pictures/Screenshots"
 
-# 将軍に伝えるだけ:
+# Bossに伝えるだけ:
 あなた: 「最新のスクショを見ろ」
 あなた: 「スクショ2枚見ろ」
 → AIが即座にスクリーンショットを読み取って分析
@@ -352,13 +352,13 @@ screenshot:
 
 | レイヤー | 場所 | 用途 |
 |---------|------|------|
-| Layer 1: Memory MCP | `memory/shogun_memory.jsonl` | プロジェクト横断・セッションを跨ぐ長期記憶 |
+| Layer 1: Memory MCP | `memory/grid_memory.jsonl` | プロジェクト横断・セッションを跨ぐ長期記憶 |
 | Layer 2: Project | `config/projects.yaml`, `projects/<id>.yaml`, `context/{project}.md` | プロジェクト固有情報・技術知見 |
-| Layer 3: YAML Queue | `queue/shogun_to_karo.yaml`, `queue/tasks/`, `queue/reports/` | タスク管理・指示と報告の正データ |
+| Layer 3: YAML Queue | `queue/boss_to_op.yaml`, `queue/tasks/`, `queue/reports/` | タスク管理・指示と報告の正データ |
 | Layer 4: Session | CLAUDE.md, instructions/*.md | 作業中コンテキスト（/clearで破棄） |
 
 この設計により：
-- どの足軽でも任意のプロジェクトを担当可能
+- どのエージェントでも任意のプロジェクトを担当可能
 - エージェント切り替え時もコンテキスト継続
 - 関心の分離が明確
 - セッション間の知識永続化
@@ -367,11 +367,11 @@ screenshot:
 
 長時間作業するとコンテキスト（Layer 4）が膨れ、APIコストが増大する。`/clear` でセッション記憶を消去すれば、コストがリセットされる。Layer 1〜3はファイルとして残るので失われない。
 
-`/clear` 後の足軽の復帰コスト: **約1,950トークン**（目標5,000の39%）
+`/clear` 後のエージェントの復帰コスト: **約1,950トークン**（目標5,000の39%）
 
-1. CLAUDE.md（自動読み込み）→ shogunシステムの一員と認識
+1. CLAUDE.md（自動読み込み）→ gridシステムの一員と認識
 2. `tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'` → 自分の番号を確認
-3. Memory MCP 読み込み → 殿の好みを復元（~700トークン）
+3. Memory MCP 読み込み → クライアントの好みを復元（~700トークン）
 4. タスクYAML 読み込み → 次の仕事を確認（~800トークン）
 
 「何を読ませないか」の設計がコスト削減に効いている。
@@ -393,7 +393,7 @@ screenshot:
 この統一フォーマットにより：
 - どのエージェントでも素早くオンボーディング可能
 - すべてのプロジェクトで一貫した情報管理
-- 足軽間の作業引き継ぎが容易
+- エージェント間の作業引き継ぎが容易
 
 ---
 
@@ -401,34 +401,34 @@ screenshot:
 
 | エージェント | モデル | 思考モード | 理由 |
 |-------------|--------|----------|------|
-| 将軍 | Opus | 無効 | 委譲とダッシュボード更新に深い推論は不要 |
-| 家老 | Opus | 有効 | タスク分配には慎重な判断が必要 |
-| 足軽1-4 | Sonnet | 有効 | コスト効率重視の標準タスク向け |
-| 足軽5-8 | Opus | 有効 | 複雑なタスク向けのフル機能 |
+| Boss | Opus | 無効 | 委譲とダッシュボード更新に深い推論は不要 |
+| Operator | Opus | 有効 | タスク分配には慎重な判断が必要 |
+| Agent 1-4 | Sonnet | 有効 | コスト効率重視の標準タスク向け |
+| Agent 5-8 | Opus | 有効 | 複雑なタスク向けのフル機能 |
 
-将軍は `MAX_THINKING_TOKENS=0` で拡張思考を無効化し、高レベルな判断にはOpusの能力を維持しつつ、レイテンシとコストを削減。
+Bossは `MAX_THINKING_TOKENS=0` で拡張思考を無効化し、高レベルな判断にはOpusの能力を維持しつつ、レイテンシとコストを削減。
 
-#### 陣形モード
+#### 運用モード
 
-| 陣形 | 足軽1-4 | 足軽5-8 | コマンド |
-|------|---------|---------|---------|
-| **平時の陣**（デフォルト） | Sonnet Thinking | Opus Thinking | `./shutsujin_departure.sh` |
-| **決戦の陣**（全力） | Opus Thinking | Opus Thinking | `./shutsujin_departure.sh -k` |
+| モード | Agent 1-4 | Agent 5-8 | コマンド |
+|--------|-----------|-----------|---------|
+| **Standard**（デフォルト） | Sonnet Thinking | Opus Thinking | `./deploy.sh` |
+| **Combat**（全力） | Opus Thinking | Opus Thinking | `./deploy.sh -k` |
 
-平時は半数を安いSonnetモデルで運用。ここぞという時に `-k`（`--kessen`）で全軍Opusの「決戦の陣」に切り替え。家老の判断で `/model opus` を送れば、個別の足軽を一時昇格させることも可能。
+Standardは半数を安いSonnetモデルで運用。ここぞという時に `-k`（`--kessen`）で全軍Opusの「Combat」モードに切り替え。Operatorの判断で `/model opus` を送れば、個別のエージェントを一時昇格させることも可能。
 
 ---
 
 ## 🎯 設計思想
 
-### なぜ階層構造（将軍→家老→足軽）なのか
+### なぜ階層構造（Boss→Operator→Agent）なのか
 
-1. **即座の応答**: 将軍は即座に委譲し、あなたに制御を返す
-2. **並列実行**: 家老が複数の足軽に同時分配
+1. **即座の応答**: Bossは即座に委譲し、あなたに制御を返す
+2. **並列実行**: Operatorが複数のエージェントに同時分配
 3. **単一責任**: 各役割が明確に分離され、混乱しない
-4. **スケーラビリティ**: 足軽を増やしても構造が崩れない
-5. **障害分離**: 1体の足軽が失敗しても他に影響しない
-6. **人間への報告一元化**: 将軍だけが人間とやり取りするため、情報が整理される
+4. **スケーラビリティ**: エージェントを増やしても構造が崩れない
+5. **障害分離**: 1体のエージェントが失敗しても他に影響しない
+6. **人間への報告一元化**: Bossだけが人間とやり取りするため、情報が整理される
 
 ### なぜ YAML + send-keys なのか
 
@@ -436,12 +436,12 @@ screenshot:
 2. **ポーリング不要**: イベント駆動でAPIコストを削減
 3. **割り込み防止**: エージェント同士やあなたの入力への割り込みを防止
 4. **デバッグ容易**: 人間がYAMLを直接読んで状況把握できる
-5. **競合回避**: 各足軽に専用ファイルを割り当て
-6. **2秒間隔送信**: 複数足軽への連続送信時に `sleep 2` を挟むことで、入力バッファ溢れを防止（到達率14%→87.5%に改善）
+5. **競合回避**: 各エージェントに専用ファイルを割り当て
+6. **2秒間隔送信**: 複数エージェントへの連続送信時に `sleep 2` を挟むことで、入力バッファ溢れを防止（到達率14%→87.5%に改善）
 
 ### エージェント識別（@agent_id）
 
-各ペインに `@agent_id` というtmuxユーザーオプションを設定（例: `karo`, `ashigaru1`）。`pane_index` はペイン再配置でズレるが、`@agent_id` は `shutsujin_departure.sh` が起動時に固定設定するため変わらない。
+各ペインに `@agent_id` というtmuxユーザーオプションを設定（例: `op`, `a1`）。`pane_index` はペイン再配置でズレるが、`@agent_id` は `deploy.sh` が起動時に固定設定するため変わらない。
 
 エージェントの自己識別:
 ```bash
@@ -451,12 +451,12 @@ tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'
 
 モデル名も `@model_name` として保存され、`pane-border-format` で常時表示。Claude Codeがペインタイトルを上書きしてもモデル名は消えない。
 
-### なぜ dashboard.md は家老のみが更新するのか
+### なぜ dashboard.md は Operator のみが更新するのか
 
 1. **単一更新者**: 競合を防ぐため、更新責任者を1人に限定
-2. **情報集約**: 家老は全足軽の報告を受ける立場なので全体像を把握
+2. **情報集約**: Operatorは全エージェントの報告を受ける立場なので全体像を把握
 3. **一貫性**: すべての更新が1つの品質ゲートを通過
-4. **割り込み防止**: 将軍が更新すると、殿の入力中に割り込む恐れあり
+4. **割り込み防止**: Bossが更新すると、クライアントの入力中に割り込む恐れあり
 
 ---
 
@@ -465,7 +465,7 @@ tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'
 初期状態ではスキルはありません。
 運用中にダッシュボード（dashboard.md）の「スキル化候補」から承認して増やしていきます。
 
-スキルは `/スキル名` で呼び出し可能。将軍に「/スキル名 を実行」と伝えるだけ。
+スキルは `/スキル名` で呼び出し可能。Bossに「/スキル名 を実行」と伝えるだけ。
 
 ### スキルの思想
 
@@ -478,13 +478,13 @@ tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'
 **2. スキル取得の手順**
 
 ```
-足軽が作業中にパターンを発見
+エージェントが作業中にパターンを発見
     ↓
 dashboard.md の「スキル化候補」に上がる
     ↓
-殿（あなた）が内容を確認
+クライアント（あなた）が内容を確認
     ↓
-承認すれば家老に指示してスキルを作成
+承認すればOperatorに指示してスキルを作成
 ```
 
 スキルはユーザ主導で増やすもの。自動で増えると管理不能になるため、「これは便利」と判断したものだけを残す。
@@ -523,7 +523,7 @@ claude mcp add sequential-thinking -- npx -y @modelcontextprotocol/server-sequen
 # 5. Memory - セッション間の長期記憶（推奨！）
 # ✅ first_setup.sh で自動設定済み
 # 手動で再設定する場合:
-claude mcp add memory -e MEMORY_FILE_PATH="$PWD/memory/shogun_memory.jsonl" -- npx -y @modelcontextprotocol/server-memory
+claude mcp add memory -e MEMORY_FILE_PATH="$PWD/memory/grid_memory.jsonl" -- npx -y @modelcontextprotocol/server-memory
 ```
 
 ### インストール確認
@@ -544,13 +544,13 @@ claude mcp list
 あなた: 「AIコーディングアシスタント上位5つを調査して比較せよ」
 
 実行される処理:
-1. 将軍が家老に委譲
-2. 家老が割り当て:
-   - 足軽1: GitHub Copilotを調査
-   - 足軽2: Cursorを調査
-   - 足軽3: Claude Codeを調査
-   - 足軽4: Codeiumを調査
-   - 足軽5: Amazon CodeWhispererを調査
+1. BossがOperatorに委譲
+2. Operatorが割り当て:
+   - Agent 1: GitHub Copilotを調査
+   - Agent 2: Cursorを調査
+   - Agent 3: Claude Codeを調査
+   - Agent 4: Codeiumを調査
+   - Agent 5: Amazon CodeWhispererを調査
 3. 5体が同時に調査
 4. 結果がdashboard.mdに集約
 ```
@@ -561,10 +561,10 @@ claude mcp list
 あなた: 「このNotionページのプロジェクトでPoC準備: [URL]」
 
 実行される処理:
-1. 家老がMCP経由でNotionコンテンツを取得
-2. 足軽2: 確認すべき項目をリスト化
-3. 足軽3: 技術的な実現可能性を調査
-4. 足軽4: PoC計画書を作成
+1. OperatorがMCP経由でNotionコンテンツを取得
+2. Agent 2: 確認すべき項目をリスト化
+3. Agent 3: 技術的な実現可能性を調査
+4. Agent 4: PoC計画書を作成
 5. 全結果がdashboard.mdに集約、会議の準備完了
 ```
 
@@ -609,11 +609,11 @@ language: en   # 日本語 + 英訳併記
 │                      毎日の起動（毎日実行）                           │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  shutsujin_departure.sh                                             │
+│  deploy.sh                                                          │
 │      │                                                              │
 │      ├──▶ tmuxセッションを作成                                       │
-│      │         • "shogun"セッション（1ペイン）                        │
-│      │         • "multiagent"セッション（9ペイン、3x3グリッド）        │
+│      │         • "boss"セッション（1ペイン）                         │
+│      │         • "grid"セッション（9ペイン、3x3グリッド）             │
 │      │                                                              │
 │      ├──▶ キューファイルとダッシュボードをリセット                     │
 │      │                                                              │
@@ -625,27 +625,27 @@ language: en   # 日本語 + 英訳併記
 </details>
 
 <details>
-<summary><b>shutsujin_departure.sh オプション</b>（クリックで展開）</summary>
+<summary><b>deploy.sh オプション</b>（クリックで展開）</summary>
 
 ```bash
 # デフォルト: フル起動（tmuxセッション + Claude Code起動）
-./shutsujin_departure.sh
+./deploy.sh
 
 # セッションセットアップのみ（Claude Code起動なし）
-./shutsujin_departure.sh -s
-./shutsujin_departure.sh --setup-only
+./deploy.sh -s
+./deploy.sh --setup-only
 
-# 決戦の陣: 全足軽をOpusで起動（最大能力・高コスト）
-./shutsujin_departure.sh -k
-./shutsujin_departure.sh --kessen
+# Combatモード: 全エージェントをOpusで起動（最大能力・高コスト）
+./deploy.sh -k
+./deploy.sh --kessen
 
 # フル起動 + Windows Terminalタブを開く
-./shutsujin_departure.sh -t
-./shutsujin_departure.sh --terminal
+./deploy.sh -t
+./deploy.sh --terminal
 
 # ヘルプを表示
-./shutsujin_departure.sh -h
-./shutsujin_departure.sh --help
+./deploy.sh -h
+./deploy.sh --help
 ```
 
 </details>
@@ -655,27 +655,27 @@ language: en   # 日本語 + 英訳併記
 
 **通常の毎日の使用：**
 ```bash
-./shutsujin_departure.sh          # 全て起動
-tmux attach-session -t shogun     # 接続してコマンドを出す
+./deploy.sh                       # 全て起動
+tmux attach-session -t boss       # 接続してコマンドを出す
 ```
 
 **デバッグモード（手動制御）：**
 ```bash
-./shutsujin_departure.sh -s       # セッションのみ作成
+./deploy.sh -s                    # セッションのみ作成
 
 # 特定のエージェントでClaude Codeを手動起動
-tmux send-keys -t shogun:0 'claude --dangerously-skip-permissions' Enter
-tmux send-keys -t multiagent:0.0 'claude --dangerously-skip-permissions' Enter
+tmux send-keys -t boss:0 'claude --dangerously-skip-permissions' Enter
+tmux send-keys -t grid:0.0 'claude --dangerously-skip-permissions' Enter
 ```
 
 **クラッシュ後の再起動：**
 ```bash
 # 既存セッションを終了
-tmux kill-session -t shogun
-tmux kill-session -t multiagent
+tmux kill-session -t boss
+tmux kill-session -t grid
 
 # 新しく起動
-./shutsujin_departure.sh
+./deploy.sh
 ```
 
 </details>
@@ -686,8 +686,8 @@ tmux kill-session -t multiagent
 `first_setup.sh` を実行すると、以下のエイリアスが `~/.bashrc` に自動追加されます：
 
 ```bash
-alias css='tmux attach-session -t shogun'      # 将軍ウィンドウの起動
-alias csm='tmux attach-session -t multiagent'  # 家老・足軽ウィンドウの起動
+alias csb='tmux attach-session -t boss'   # Bossウィンドウの起動
+alias csg='tmux attach-session -t grid'   # Operator・エージェントウィンドウの起動
 ```
 
 ※ エイリアスを反映するには `source ~/.bashrc` を実行するか、PowerShellで `wsl --shutdown` してからターミナルを開き直してください。
@@ -702,18 +702,18 @@ alias csm='tmux attach-session -t multiagent'  # 家老・足軽ウィンドウ�
 <summary><b>クリックでファイル構成を展開</b></summary>
 
 ```
-multi-agent-shogun/
+multi-agent-grid/
 │
 │  ┌─────────────────── セットアップスクリプト ───────────────────┐
 ├── install.bat               # Windows: 初回セットアップ
 ├── first_setup.sh            # Ubuntu/Mac: 初回セットアップ
-├── shutsujin_departure.sh    # 毎日の起動（指示書自動読み込み）
+├── deploy.sh                 # 毎日の起動（指示書自動読み込み）
 │  └────────────────────────────────────────────────────────────┘
 │
 ├── instructions/             # エージェント指示書
-│   ├── shogun.md             # 将軍の指示書
-│   ├── karo.md               # 家老の指示書
-│   └── ashigaru.md           # 足軽の指示書
+│   ├── boss.md               # Bossの指示書
+│   ├── operator.md           # Operatorの指示書
+│   └── agent.md              # Agentの指示書
 │
 ├── config/
 │   └── settings.yaml         # 言語その他の設定
@@ -722,7 +722,7 @@ multi-agent-shogun/
 │   └── <project_id>.yaml   # 各プロジェクトの全情報（クライアント、タスク、Notion連携等）
 │
 ├── queue/                    # 通信ファイル
-│   ├── shogun_to_karo.yaml   # 将軍から家老へのコマンド
+│   ├── boss_to_op.yaml       # BossからOperatorへのコマンド
 │   ├── tasks/                # 各ワーカーのタスクファイル
 │   └── reports/              # ワーカーレポート
 │
@@ -774,7 +774,7 @@ current_tasks:
     status: in_progress
 ```
 
-この分離設計により、将軍システムは複数の外部プロジェクトを横断的に統率しつつ、プロジェクトの詳細情報はバージョン管理の対象外に保つことができる。
+この分離設計により、gridシステムは複数の外部プロジェクトを横断的に統率しつつ、プロジェクトの詳細情報はバージョン管理の対象外に保つことができる。
 
 ---
 
@@ -812,16 +812,16 @@ claude --dangerously-skip-permissions --system-prompt "..."
 
 ワーカーのペインを確認：
 ```bash
-tmux attach-session -t multiagent
+tmux attach-session -t grid
 # Ctrl+B の後に数字でペインを切り替え
 ```
 
 </details>
 
 <details>
-<summary><b>将軍やエージェントが落ちた？（Claude Codeプロセスがkillされた）</b></summary>
+<summary><b>Bossやエージェントが落ちた？（Claude Codeプロセスがkillされた）</b></summary>
 
-**`css` 等のtmuxセッション起動エイリアスを使って再起動してはいけません。** これらのエイリアスはtmuxセッションを作成するため、既存のtmuxペイン内で実行するとセッションがネスト（入れ子）になり、入力が壊れてペインが使用不能になります。
+**`csb` 等のtmuxセッション起動エイリアスを使って再起動してはいけません。** これらのエイリアスはtmuxセッションを作成するため、既存のtmuxペイン内で実行するとセッションがネスト（入れ子）になり、入力が壊れてペインが使用不能になります。
 
 **正しい再起動方法：**
 
@@ -829,13 +829,13 @@ tmux attach-session -t multiagent
 # 方法1: ペイン内でclaudeを直接実行
 claude --model opus --dangerously-skip-permissions
 
-# 方法2: 家老がrespawn-paneで強制再起動（ネストも解消される）
-tmux respawn-pane -t shogun:0.0 -k 'claude --model opus --dangerously-skip-permissions'
+# 方法2: Operatorがrespawn-paneで強制再起動（ネストも解消される）
+tmux respawn-pane -t boss:0.0 -k 'claude --model opus --dangerously-skip-permissions'
 ```
 
 **誤ってtmuxをネストしてしまった場合：**
 1. `Ctrl+B` の後 `d` でデタッチ（内側のセッションから離脱）
-2. その後 `claude` を直接実行（`css` は使わない）
+2. その後 `claude` を直接実行（`csb` は使わない）
 3. デタッチが効かない場合は、別のペインから `tmux respawn-pane -k` で強制リセット
 
 </details>
@@ -846,12 +846,12 @@ tmux respawn-pane -t shogun:0.0 -k 'claude --model opus --dangerously-skip-permi
 
 | コマンド | 説明 |
 |----------|------|
-| `tmux attach -t shogun` | 将軍に接続 |
-| `tmux attach -t multiagent` | ワーカーに接続 |
+| `tmux attach -t boss` | Bossに接続 |
+| `tmux attach -t grid` | ワーカーに接続 |
 | `Ctrl+B` の後 `0-8` | ペイン間を切り替え |
 | `Ctrl+B` の後 `d` | デタッチ（実行継続） |
-| `tmux kill-session -t shogun` | 将軍セッションを停止 |
-| `tmux kill-session -t multiagent` | ワーカーセッションを停止 |
+| `tmux kill-session -t boss` | Bossセッションを停止 |
+| `tmux kill-session -t grid` | ワーカーセッションを停止 |
 
 ### 🖱️ マウス操作
 
@@ -869,7 +869,9 @@ tmux respawn-pane -t shogun:0.0 -k 'claude --model opus --dangerously-skip-permi
 
 ## 🙏 クレジット
 
-[Claude-Code-Communication](https://github.com/Akira-Papa/Claude-Code-Communication) by Akira-Papa をベースに開発。
+このリポジトリは [multi-agent-shogun](https://github.com/yohey-w/multi-agent-shogun) by yohey-w のサイバーパンク風フォークです。オリジナルは戦国テーマ（将軍/家老/足軽）を採用しています。
+
+両プロジェクトは [Claude-Code-Communication](https://github.com/Akira-Papa/Claude-Code-Communication) by Akira-Papa をベースに開発されています。
 
 ---
 
@@ -881,6 +883,6 @@ MIT License - 詳細は [LICENSE](LICENSE) を参照。
 
 <div align="center">
 
-**AIの軍勢を統率せよ。より速く構築せよ。**
+**AIネットワークを統率せよ。より速く構築せよ。**
 
 </div>

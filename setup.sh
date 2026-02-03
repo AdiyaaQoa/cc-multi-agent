@@ -1,12 +1,12 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════════
-# setup.sh - 互換性のためのラッパースクリプト
+# setup.sh - Compatibility Wrapper Script
 # ═══════════════════════════════════════════════════════════════════════════════
-# このスクリプトは shutsujin_departure.sh に統合されました。
-# 互換性のため、全ての引数を shutsujin_departure.sh に転送します。
+# This script has been superseded by deploy.sh
+# For backward compatibility, all arguments are forwarded to deploy.sh
 #
-# 推奨: 直接 ./shutsujin_departure.sh を使用してください。
+# Recommended: Use ./deploy.sh directly
 # ═══════════════════════════════════════════════════════════════════════════════
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "$SCRIPT_DIR/shutsujin_departure.sh" "$@"
+exec "$SCRIPT_DIR/deploy.sh" "$@"
