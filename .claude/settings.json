@@ -1,4 +1,28 @@
 {
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "session_start",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'SESSION_START_TIME='$(date +%Y%m%d_%H%M%S) >> \"$CLAUDE_ENV_FILE\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "stop",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "エージェントがタスクを完了した場合、報告YAMLに結果が記載されているか確認せよ。記載されていない場合は 'block' と出力し、理由を説明せよ。記載されている場合や、タスク完了以外の停止なら 'allow' と出力せよ。"
+          }
+        ]
+      }
+    ]
+  },
   "spinnerVerbs": {
     "mode": "replace",
     "verbs": [
