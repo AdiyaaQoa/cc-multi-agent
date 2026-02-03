@@ -52,7 +52,7 @@ workflow:
     value: done
   - step: 7
     action: send_keys
-    target: grid:0.0
+    target: grid:agents.{OP_PANE}
     method: two_bash_calls
     mandatory: true
     retry:
@@ -67,8 +67,8 @@ files:
 
 # ペイン設定
 panes:
-  operator: grid:0.0
-  self_template: "grid:0.{N}"
+  operator: grid:agents.{OP_PANE}
+  self_template: "grid:agents.{PANE}"
 
 # send-keys ルール
 send_keys:
@@ -180,22 +180,32 @@ Operatorから「a{N}.yaml を読め」と言われても、Nが自分の番号�
 
 ## 🔴 tmux send-keys（超重要）
 
+### ✅ Operatorペインの特定（base-index安全）
+
+pane-base-index に依存しないよう、**必ず `@agent_id` で逆引き**すること。
+
+```bash
+OP_PANE=$(tmux list-panes -t grid:agents -F '#{pane_index}' -f '#{==:#{@agent_id},op}')
+```
+
+以降の `grid:agents.{OP_PANE}` はこの値を使う。
+
 ### ❌ 絶対禁止パターン
 
 ```bash
-tmux send-keys -t grid:0.0 'メッセージ' Enter  # ダメ
+tmux send-keys -t grid:agents.{OP_PANE} 'メッセージ' Enter  # ダメ
 ```
 
 ### ✅ 正しい方法（2回に分ける）
 
 **【1回目】**
 ```bash
-tmux send-keys -t grid:0.0 'Agent {N}、Mission complete. 報告書を確認されたし。'
+tmux send-keys -t grid:agents.{OP_PANE} 'Agent {N}、Mission complete. 報告書を確認されたし。'
 ```
 
 **【2回目】**
 ```bash
-tmux send-keys -t grid:0.0 Enter
+tmux send-keys -t grid:agents.{OP_PANE} Enter
 ```
 
 ### ⚠️ 報告送信は義務（省略禁止）
@@ -213,7 +223,7 @@ tmux send-keys -t grid:0.0 Enter
 
 **STEP 1: Operatorの状態確認**
 ```bash
-tmux capture-pane -t grid:0.0 -p | tail -5
+tmux capture-pane -t grid:agents.{OP_PANE} -p | tail -5
 ```
 
 **STEP 2: idle判定**
@@ -237,18 +247,18 @@ sleep 10
 
 **【1回目】**
 ```bash
-tmux send-keys -t grid:0.0 'Agent {N}、Mission complete. 報告書を確認されたし。'
+tmux send-keys -t grid:agents.{OP_PANE} 'Agent {N}、Mission complete. 報告書を確認されたし。'
 ```
 
 **【2回目】**
 ```bash
-tmux send-keys -t grid:0.0 Enter
+tmux send-keys -t grid:agents.{OP_PANE} Enter
 ```
 
 **STEP 6: 到達確認（必須）**
 ```bash
 sleep 5
-tmux capture-pane -t grid:0.0 -p | tail -5
+tmux capture-pane -t grid:agents.{OP_PANE} -p | tail -5
 ```
 - Operatorが thinking / working 状態 → 到達OK
 - Operatorがプロンプト待ち（❯）のまま → **到達失敗。STEP 5を再送せよ**

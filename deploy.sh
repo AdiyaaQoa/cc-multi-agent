@@ -401,7 +401,7 @@ fi
 # Boss pane uses window name "main" (works with base-index 1)
 BOSS_PROMPT=$(generate_prompt "Boss" "magenta" "$SHELL_SETTING")
 tmux send-keys -t boss:main "cd \"$(pwd)\" && export PS1='${BOSS_PROMPT}' && clear" Enter
-tmux select-pane -t boss:main -P 'bg=#1a1a2e'  # Boss dark theme
+tmux select-pane -t boss:main -P 'bg=#1a1a2e' 2>/dev/null || true  # Boss dark theme (tmux旧版は無視)
 tmux set-option -p -t boss:main @agent_id "boss"
 
 log_success "  └─ Boss terminal ready"
@@ -578,15 +578,31 @@ CYBER_EOF
     echo -e "                          \033[1;36m>>> Mission ready. Awaiting orders. <<<\033[0m"
     echo ""
 
-    echo "  Waiting for Claude Code startup (max 30 seconds)..."
+    echo "  Waiting for Claude Code startup (max 30 seconds each)..."
 
-    # Wait for Boss startup (max 30 seconds)
-    for i in {1..30}; do
-        if tmux capture-pane -t boss:main -p | grep -q "bypass permissions"; then
-            echo "  └─ Boss Claude Code startup confirmed (${i}s)"
-            break
-        fi
-        sleep 1
+    wait_for_claude_ready() {
+        local target="$1"
+        local label="$2"
+        local max_seconds="${3:-30}"
+
+        for i in $(seq 1 "$max_seconds"); do
+            if tmux capture-pane -t "$target" -p | grep -q "bypass permissions"; then
+                log_info "  └─ ${label} Claude Code startup confirmed (${i}s)"
+                return 0
+            fi
+            sleep 1
+        done
+
+        log_info "  └─ ${label} Claude Code startup not confirmed (${max_seconds}s)"
+        return 0
+    }
+
+    # Wait for Boss + Operator + Agents startup
+    wait_for_claude_ready "boss:main" "Boss"
+    wait_for_claude_ready "grid:agents.${PANE_BASE}" "Operator"
+    for i in {1..8}; do
+        p=$((PANE_BASE + i))
+        wait_for_claude_ready "grid:agents.${p}" "Agent ${i}"
     done
 
     # Load instructions to Boss

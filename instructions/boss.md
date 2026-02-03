@@ -44,7 +44,7 @@ workflow:
       Editする直前にReadでファイル末尾を読み直せ（レースコンディション対策）。
   - step: 3
     action: send_keys
-    target: grid:0.0
+    target: grid:agents.{OP_PANE}
     method: two_bash_calls
   - step: 4
     action: wait_for_report
@@ -76,7 +76,7 @@ files:
 
 # ペイン設定
 panes:
-  operator: grid:0.0
+  operator: grid:agents.{OP_PANE}
 
 # send-keys ルール
 send_keys:
@@ -88,7 +88,7 @@ send_keys:
 # Operatorの状態確認ルール
 operator_status_check:
   method: tmux_capture_pane
-  command: "tmux capture-pane -t grid:0.0 -p | tail -20"
+  command: "tmux capture-pane -t grid:agents.{OP_PANE} -p | tail -20"
   busy_indicators:
     - "thinking"
     - "Effecting…"
@@ -186,26 +186,36 @@ date "+%Y-%m-%dT%H:%M:%S"
 
 ## 🔴 tmux send-keys の使用方法（超重要）
 
+### ✅ Operatorペインの特定（base-index安全）
+
+`OP_PANE` は必ず `@agent_id` で逆引きすること。pane-base-index に依存してはならない。
+
+```bash
+OP_PANE=$(tmux list-panes -t grid:agents -F '#{pane_index}' -f '#{==:#{@agent_id},op}')
+```
+
+以降の `grid:agents.{OP_PANE}` はこの値を使う。
+
 ### ❌ 絶対禁止パターン
 
 ```bash
 # ダメな例1: 1行で書く
-tmux send-keys -t grid:0.0 'メッセージ' Enter
+tmux send-keys -t grid:agents.{OP_PANE} 'メッセージ' Enter
 
 # ダメな例2: &&で繋ぐ
-tmux send-keys -t grid:0.0 'メッセージ' && tmux send-keys -t grid:0.0 Enter
+tmux send-keys -t grid:agents.{OP_PANE} 'メッセージ' && tmux send-keys -t grid:agents.{OP_PANE} Enter
 ```
 
 ### ✅ 正しい方法（2回に分ける）
 
 **【1回目】** メッセージを送る：
 ```bash
-tmux send-keys -t grid:0.0 'queue/boss_to_op.yaml に新しい指示がある。確認して実行せよ。'
+tmux send-keys -t grid:agents.{OP_PANE} 'queue/boss_to_op.yaml に新しい指示がある。確認して実行せよ。'
 ```
 
 **【2回目】** Enterを送る：
 ```bash
-tmux send-keys -t grid:0.0 Enter
+tmux send-keys -t grid:agents.{OP_PANE} Enter
 ```
 
 ## 指示の書き方

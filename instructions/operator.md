@@ -56,7 +56,7 @@ workflow:
     note: "各Agent専用ファイル"
   - step: 7
     action: send_keys
-    target: "grid:0.{N}"
+    target: "grid:agents.{PANE}"
     method: two_bash_calls
   - step: 8
     action: check_pending
@@ -81,7 +81,7 @@ workflow:
     note: "完了報告受信時に「Results」セクションを更新。Bossへのsend-keysは行わない"
   - step: 12
     action: reset_pane_title
-    command: 'tmux select-pane -t grid:0.0 -T "op (Opus Thinking)"'
+    command: 'tmux select-pane -t grid:agents.{OP_PANE} -T "op (Opus Thinking)"'
     note: "タスク処理完了後、ペインタイトルをデフォルトに戻す。stop前に必ず実行"
 
 # ファイルパス
@@ -93,20 +93,11 @@ files:
   dashboard: dashboard.md
 
 # ペイン設定
-# 通常はペイン番号=Agent番号（deploy.shが起動時に保証）
-# ズレが発生した場合は @agent_id で正しいペインを特定できる
+# pane-base-index に依存するため、必ず @agent_id で逆引きする
 panes:
   boss: boss
-  self: grid:0.0
-  agent_default:
-    - { id: 1, pane: "grid:agents.1" }
-    - { id: 2, pane: "grid:agents.2" }
-    - { id: 3, pane: "grid:agents.3" }
-    - { id: 4, pane: "grid:agents.4" }
-    - { id: 5, pane: "grid:agents.5" }
-    - { id: 6, pane: "grid:agents.6" }
-    - { id: 7, pane: "grid:agents.7" }
-    - { id: 8, pane: "grid:agents.8" }
+  self: grid:agents.{OP_PANE}
+  op_id_lookup: "tmux list-panes -t grid:agents -F '#{pane_index}' -f '#{==:#{@agent_id},op}'"
   agent_id_lookup: "tmux list-panes -t grid:agents -F '#{pane_index}' -f '#{==:#{@agent_id},a{N}}'"
 
 # send-keys ルール
@@ -119,7 +110,7 @@ send_keys:
 # Agentの状態確認ルール
 agent_status_check:
   method: tmux_capture_pane
-  command: "tmux capture-pane -t grid:0.{N} -p | tail -20"
+  command: "tmux capture-pane -t grid:agents.{PANE} -p | tail -20"
   busy_indicators:
     - "thinking"
     - "Esc to interrupt"
@@ -196,12 +187,26 @@ date "+%Y-%m-%dT%H:%M:%S"
 
 **理由**: システムのローカルタイムを使用することで、ユーザーのタイムゾーンに依存した正しい時刻が取得できる。
 
+## 🔴 ペイン指定（base-index安全）
+
+pane-base-index に依存しないよう、**必ず `@agent_id` で逆引き**してから送信せよ。
+
+```bash
+# Operator 自身（op）
+OP_PANE=$(tmux list-panes -t grid:agents -F '#{pane_index}' -f '#{==:#{@agent_id},op}')
+
+# Agent N（a1〜a8）
+PANE=$(tmux list-panes -t grid:agents -F '#{pane_index}' -f '#{==:#{@agent_id},a{N}}')
+```
+
+以降の例で使う `grid:agents.{OP_PANE}` / `grid:agents.{PANE}` はこの値を指す。
+
 ## 🔴 tmux send-keys の使用方法（超重要）
 
 ### ❌ 絶対禁止パターン
 
 ```bash
-tmux send-keys -t grid:0.1 'メッセージ' Enter  # ダメ
+tmux send-keys -t grid:agents.{PANE} 'メッセージ' Enter  # ダメ
 ```
 **なぜダメか**: 1回で 'メッセージ' Enter と書くと、tmuxがEnterをメッセージの一部として
 解釈する場合がある。確実にEnterを送るために**必ず2回のBash呼び出しに分けよ**。
@@ -210,12 +215,12 @@ tmux send-keys -t grid:0.1 'メッセージ' Enter  # ダメ
 
 **【1回目】**
 ```bash
-tmux send-keys -t grid:0.{N} 'queue/tasks/a{N}.yaml にミッションがある。確認して実行せよ。'
+tmux send-keys -t grid:agents.{PANE} 'queue/tasks/a{N}.yaml にミッションがある。確認して実行せよ。'
 ```
 
 **【2回目】**
 ```bash
-tmux send-keys -t grid:0.{N} Enter
+tmux send-keys -t grid:agents.{PANE} Enter
 ```
 
 ### ⚠️ 複数Agentへの連続送信（2秒間隔）
@@ -226,12 +231,14 @@ tmux send-keys -t grid:0.{N} Enter
 
 ```bash
 # Agent 1に送信
-tmux send-keys -t grid:0.1 'メッセージ'
-tmux send-keys -t grid:0.1 Enter
+PANE=$(tmux list-panes -t grid:agents -F '#{pane_index}' -f '#{==:#{@agent_id},a1}')
+tmux send-keys -t grid:agents.${PANE} 'メッセージ'
+tmux send-keys -t grid:agents.${PANE} Enter
 sleep 2
 # Agent 2に送信
-tmux send-keys -t grid:0.2 'メッセージ'
-tmux send-keys -t grid:0.2 Enter
+PANE=$(tmux list-panes -t grid:agents -F '#{pane_index}' -f '#{==:#{@agent_id},a2}')
+tmux send-keys -t grid:agents.${PANE} 'メッセージ'
+tmux send-keys -t grid:agents.${PANE} Enter
 sleep 2
 # ... 以下同様
 ```
@@ -243,7 +250,7 @@ Agentにsend-keysを送った後、**1回だけ**確認を行え。ループ禁�
 Agentからの報告send-keysを受け取れなくなる。到達確認より報告受信が優先。
 
 1. **5秒待機**: `sleep 5`
-2. **Agentの状態確認**: `tmux capture-pane -t grid:0.{N} -p | tail -5`
+2. **Agentの状態確認**: `tmux capture-pane -t grid:agents.{PANE} -p | tail -5`
 3. **判定**:
    - Agentが thinking / working 状態 → 到達OK。**ここで止まれ（stop）**
    - Agentがプロンプト待ち（❯）のまま → **1回だけ再送**（メッセージ+Enter、2回のBash呼び出し）
@@ -591,26 +598,26 @@ STEP 2: 次タスクYAMLを先に書き込む（YAML先行書き込み原則）
 
 STEP 3: ペインタイトルをデフォルトに戻す（Agentアイドル確認後に実行）
   └→ Agentが処理中はClaude Codeがタイトルを上書きするため、アイドル（❯表示）を確認してから実行
-  tmux select-pane -t grid:0.{N} -T "a{N} (モデル名)"
+  tmux select-pane -t grid:agents.{PANE} -T "a{N} (モデル名)"
   └→ モデル名はAgent 1-4="Sonnet Thinking"、Agent 5-8="Opus Thinking"
   └→ 昇格中（model_override: opus）なら "Opus Thinking" を使う
 
 STEP 4: /clear を send-keys で送る（2回に分ける）
   【1回目】
-  tmux send-keys -t grid:0.{N} '/clear'
+  tmux send-keys -t grid:agents.{PANE} '/clear'
   【2回目】
-  tmux send-keys -t grid:0.{N} Enter
+  tmux send-keys -t grid:agents.{PANE} Enter
 
 STEP 5: Agentの /clear 完了を確認
-  tmux capture-pane -t grid:0.{N} -p | tail -5
+  tmux capture-pane -t grid:agents.{PANE} -p | tail -5
   └→ プロンプト（❯）が表示されていれば完了
   └→ 表示されていなければ 5秒待って再確認（最大3回）
 
 STEP 6: タスク読み込み指示を send-keys で送る（2回に分ける）
   【1回目】
-  tmux send-keys -t grid:0.{N} 'queue/tasks/a{N}.yaml にミッションがある。確認して実行せよ。'
+  tmux send-keys -t grid:agents.{PANE} 'queue/tasks/a{N}.yaml にミッションがある。確認して実行せよ。'
   【2回目】
-  tmux send-keys -t grid:0.{N} Enter
+  tmux send-keys -t grid:agents.{PANE} Enter
 ```
 
 ### /clear をスキップする場合（skip_clear）
@@ -633,8 +640,9 @@ STEP 6: タスク読み込み指示を send-keys で送る（2回に分ける）
 
 ## 🔴 ペイン番号とAgent番号のズレ対策
 
-通常、ペイン番号 = Agent番号（deploy.sh が起動時に保証）。
-しかし長時間運用でペインの削除・再作成が発生するとズレることがある。
+pane-base-index によりペイン番号は環境ごとにズレる。
+さらに長時間運用でペインの削除・再作成が発生するとズレが拡大する。
+**常に @agent_id で逆引きして送信先を特定せよ。**
 
 ### 自分のIDを確認する方法（Operator自身）
 ```bash
@@ -658,9 +666,9 @@ tmux send-keys -t grid:agents.5 'メッセージ'
 ```
 
 ### いつ逆引きするか
-- **通常時**: 不要。`grid:0.{N}` でそのまま送れ
-- **到達確認で2回失敗した場合**: ペイン番号ズレを疑い、逆引きで確認せよ
-- **deploy.sh 再実行後**: ペイン番号は正しくリセットされる
+- **通常時**: 必須。`@agent_id` で必ず逆引きする
+- **到達確認で2回失敗した場合**: 逆引き結果が変わっていないか再確認せよ
+- **deploy.sh 再実行後**: 逆引きは引き続き必須（pane-base-indexが不定のため）
 
 ## 🔴 Agentモデル選定・動的切替
 
@@ -669,9 +677,9 @@ tmux send-keys -t grid:agents.5 'メッセージ'
 | エージェント | モデル | ペイン | 用途 |
 |-------------|--------|-------|------|
 | Boss | Opus（思考なし） | boss:0.0 | 統括・Clientとの対話 |
-| Operator | Opus Thinking | grid:0.0 | タスク分解・品質管理 |
-| Agent 1-4 | Sonnet Thinking | grid:0.1-0.4 | 定型・中程度タスク |
-| Agent 5-8 | Opus Thinking | grid:0.5-0.8 | 高難度タスク |
+| Operator | Opus Thinking | grid:agents.{OP_PANE} | タスク分解・品質管理 |
+| Agent 1-4 | Sonnet Thinking | grid:agents.{PANE} | 定型・中程度タスク |
+| Agent 5-8 | Opus Thinking | grid:agents.{PANE} | 高難度タスク |
 
 ### タスク振り分け基準
 
@@ -709,11 +717,11 @@ WebSearch/WebFetchでのリサーチ、定型的なドキュメント作成、�
 **手順（3ステップ）:**
 ```bash
 # 【1回目】モデル切替コマンドを送信
-tmux send-keys -t grid:0.{N} '/model <新モデル>'
+tmux send-keys -t grid:agents.{PANE} '/model <新モデル>'
 # 【2回目】Enterを送信
-tmux send-keys -t grid:0.{N} Enter
+tmux send-keys -t grid:agents.{PANE} Enter
 # 【3回目】tmuxボーダー表示を更新（表示と実態の乖離を防ぐ）
-tmux set-option -p -t grid:0.{N} @model_name '<新表示名>'
+tmux set-option -p -t grid:agents.{PANE} @model_name '<新表示名>'
 ```
 
 **表示名の対応:**
@@ -724,9 +732,10 @@ tmux set-option -p -t grid:0.{N} @model_name '<新表示名>'
 
 **例: Agent 6をSonnetに降格:**
 ```bash
-tmux send-keys -t grid:0.6 '/model sonnet'
-tmux send-keys -t grid:0.6 Enter
-tmux set-option -p -t grid:0.6 @model_name 'Sonnet Thinking'
+PANE=$(tmux list-panes -t grid:agents -F '#{pane_index}' -f '#{==:#{@agent_id},a6}')
+tmux send-keys -t grid:agents.${PANE} '/model sonnet'
+tmux send-keys -t grid:agents.${PANE} Enter
+tmux set-option -p -t grid:agents.${PANE} @model_name 'Sonnet Thinking'
 ```
 
 - 切替は即時（数秒）。/exit不要、コンテキストも維持される

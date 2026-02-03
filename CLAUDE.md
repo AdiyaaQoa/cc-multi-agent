@@ -157,10 +157,12 @@ Client（人間 / クライアント）
 - 通知は tmux send-keys で相手を起こす（必ず Enter を使用、C-m 禁止）
 - **send-keys は必ず2回のBash呼び出しに分けよ**（1回で書くとEnterが正しく解釈されない）：
   ```bash
+  # Operatorペインは base-index に依存するため @agent_id で逆引きする
+  OP_PANE=$(tmux list-panes -t grid:agents -F '#{pane_index}' -f '#{==:#{@agent_id},op}')
   # 【1回目】メッセージを送る
-  tmux send-keys -t grid:0.0 'メッセージ内容'
+  tmux send-keys -t grid:agents.${OP_PANE} 'メッセージ内容'
   # 【2回目】Enterを送る
-  tmux send-keys -t grid:0.0 Enter
+  tmux send-keys -t grid:agents.${OP_PANE} Enter
   ```
 
 ### 報告の流れ（割り込み防止設計）
@@ -280,7 +282,7 @@ MCPツールは遅延ロード方式。使用前に必ず `ToolSearch` で検索
 - Operatorからの報告待ちの際はこれを確認
 
 ### 4. Operatorの状態確認
-- 指示前にOperatorが処理中か確認: `tmux capture-pane -t grid:0.0 -p | tail -20`
+- 指示前にOperatorが処理中か確認: `tmux capture-pane -t grid:agents.{OP_PANE} -p | tail -20`
 - "thinking", "Effecting…" 等が表示中なら待機
 
 ### 5. スクリーンショットの場所

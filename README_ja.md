@@ -665,7 +665,8 @@ tmux attach-session -t boss       # 接続してコマンドを出す
 
 # 特定のエージェントでClaude Codeを手動起動
 tmux send-keys -t boss:0 'claude --dangerously-skip-permissions' Enter
-tmux send-keys -t grid:0.0 'claude --dangerously-skip-permissions' Enter
+OP_PANE=$(tmux list-panes -t grid:agents -F '#{pane_index}' -f '#{==:#{@agent_id},op}')
+tmux send-keys -t grid:agents.${OP_PANE} 'claude --dangerously-skip-permissions' Enter
 ```
 
 **クラッシュ後の再起動：**
@@ -689,6 +690,8 @@ tmux kill-session -t grid
 alias csb='tmux attach-session -t boss'   # Bossウィンドウの起動
 alias csg='tmux attach-session -t grid'   # Operator・エージェントウィンドウの起動
 ```
+
+**zsh 利用時**は `~/.zshrc` に同じエイリアスを追加してください。
 
 ※ エイリアスを反映するには `source ~/.bashrc` を実行するか、PowerShellで `wsl --shutdown` してからターミナルを開き直してください。
 
