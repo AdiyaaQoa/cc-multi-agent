@@ -415,7 +415,7 @@ Bossは `MAX_THINKING_TOKENS=0` で拡張思考を無効化し、高レベルな
 | **Standard**（デフォルト） | Sonnet Thinking | Opus Thinking | `./deploy.sh` |
 | **Combat**（全力） | Opus Thinking | Opus Thinking | `./deploy.sh -k` |
 
-Standardは半数を安いSonnetモデルで運用。ここぞという時に `-k`（`--kessen`）で全軍Opusの「Combat」モードに切り替え。Operatorの判断で `/model opus` を送れば、個別のエージェントを一時昇格させることも可能。
+Standardは半数を安いSonnetモデルで運用。ここぞという時に `-k`（`--combat`）で全軍Opusの「Combat」モードに切り替え。Operatorの判断で `/model opus` を送れば、個別のエージェントを一時昇格させることも可能。
 
 ---
 
@@ -637,7 +637,11 @@ language: en   # 日本語 + 英訳併記
 
 # Combatモード: 全エージェントをOpusで起動（最大能力・高コスト）
 ./deploy.sh -k
-./deploy.sh --kessen
+./deploy.sh --combat
+
+# 安定化/観測を強化（tmux hooks・silence監視・paneログ・起動待ちを強化）
+./deploy.sh --stable
+./deploy.sh --tmux-stable
 
 # フル起動 + Windows Terminalタブを開く
 ./deploy.sh -t

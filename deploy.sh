@@ -76,6 +76,7 @@ SETUP_ONLY=false
 OPEN_TERMINAL=false
 CLEAN_MODE=false
 COMBAT_MODE=false
+STABLE_MODE=false
 SHELL_OVERRIDE=""
 
 while [[ $# -gt 0 ]]; do
@@ -90,6 +91,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -k|--combat)
             COMBAT_MODE=true
+            shift
+            ;;
+        --stable|--tmux-stable)
+            STABLE_MODE=true
             shift
             ;;
         -t|--terminal)
@@ -117,6 +122,7 @@ while [[ $# -gt 0 ]]; do
             echo "  -k, --combat        Combat Mode (all agents use Opus Thinking)"
             echo "                      Default is Standard Mode (Agent 1-4=Sonnet, 5-8=Opus)"
             echo "  -s, --setup-only    Setup tmux sessions only (no Claude startup)"
+            echo "      --stable        Enable tmux-based stability/observability (non-breaking)"
             echo "  -t, --terminal      Open new tabs in Windows Terminal"
             echo "  -shell, --shell SH  Specify shell (bash or zsh)"
             echo "                      Default uses config/settings.yaml setting"
@@ -166,6 +172,60 @@ if [ -n "$SHELL_OVERRIDE" ]; then
         exit 1
     fi
 fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Optional stability helpers (tmux-native, best effort)
+# ═══════════════════════════════════════════════════════════════════════════════
+STABLE_STARTUP_TIMEOUT_SECONDS="${GRID_STARTUP_TIMEOUT_SECONDS:-30}"
+STABLE_MONITOR_SILENCE_SECONDS="${GRID_MONITOR_SILENCE_SECONDS:-300}"
+
+wait_for_tmux_output() {
+    local target="$1"
+    local label="$2"
+    local needle="$3"
+    local timeout="$4"
+
+    for i in $(seq 1 "$timeout"); do
+        if tmux capture-pane -t "$target" -p 2>/dev/null | grep -Fq "$needle"; then
+            log_info "  └─ ${label} startup confirmed (${i}s)"
+            return 0
+        fi
+        sleep 1
+    done
+
+    log_info "  └─ ${label} startup not confirmed (timeout ${timeout}s) — continuing"
+    return 1
+}
+
+enable_tmux_stability() {
+    # Avoid breaking deploy on older tmux builds: best-effort only.
+    tmux set-option -g remain-on-exit on 2>/dev/null || true
+    tmux set-option -g focus-events on 2>/dev/null || true
+
+    # Visual notifications for quiet/stalled panes (window-level)
+    tmux set-window-option -t grid:agents monitor-activity on 2>/dev/null || true
+    tmux set-window-option -t grid:agents visual-activity on 2>/dev/null || true
+    tmux set-window-option -t grid:agents monitor-silence "$STABLE_MONITOR_SILENCE_SECONDS" 2>/dev/null || true
+    tmux set-window-option -t grid:agents visual-silence on 2>/dev/null || true
+
+    # Hooks (best effort)
+    tmux set-hook -g command-error 'display-message -d 0 "tmux command error on #{hook_pane}"' 2>/dev/null || true
+    tmux set-hook -g pane-died 'display-message -d 0 "Pane died: #{hook_pane}"' 2>/dev/null || true
+}
+
+enable_pane_logs() {
+    mkdir -p "./logs/panes" 2>/dev/null || true
+
+    # Boss
+    tmux pipe-pane -o -t boss:main "cat >> \"${SCRIPT_DIR}/logs/panes/boss.log\"" 2>/dev/null || true
+
+    # Grid panes: op + a1-a8 (requires AGENT_IDS[] and PANE_BASE)
+    for i in {0..8}; do
+        local pane_index=$((PANE_BASE + i))
+        local agent="${AGENT_IDS[$i]}"
+        tmux pipe-pane -o -t "grid:agents.${pane_index}" "cat >> \"${SCRIPT_DIR}/logs/panes/${agent}.log\"" 2>/dev/null || true
+    done
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Deploy banner display (Cyberpunk ASCII Art)
@@ -473,6 +533,9 @@ for i in {0..8}; do
     tmux select-pane -t "grid:agents.${p}" -T "${PANE_TITLES[$i]}"
     tmux set-option -p -t "grid:agents.${p}" @agent_id "${AGENT_IDS[$i]}"
     tmux set-option -p -t "grid:agents.${p}" @model_name "${MODEL_NAMES[$i]}"
+    tmux set-option -p -t "grid:agents.${p}" @task_status "idle" 2>/dev/null || true
+    tmux set-option -p -t "grid:agents.${p}" @task_id "" 2>/dev/null || true
+    tmux set-option -p -t "grid:agents.${p}" @last_report_time "" 2>/dev/null || true
     PROMPT_STR=$(generate_prompt "${PANE_LABELS[$i]}" "${PANE_COLORS[$i]}" "$SHELL_SETTING")
     tmux send-keys -t "grid:agents.${p}" "cd \"$(pwd)\" && export PS1='${PROMPT_STR}' && clear" Enter
 done
@@ -480,6 +543,12 @@ done
 # pane-border-format for persistent model name display
 tmux set-option -t grid -w pane-border-status top
 tmux set-option -t grid -w pane-border-format '#{pane_index} #{@agent_id} (#{?#{==:#{@model_name},},unknown,#{@model_name}})'
+
+if [ "$STABLE_MODE" = true ]; then
+    log_info "Enabling tmux stability/observability (best effort)..."
+    enable_tmux_stability
+    enable_pane_logs
+fi
 
 log_success "  └─ Grid network initialized"
 echo ""
@@ -580,14 +649,23 @@ CYBER_EOF
 
     echo "  Waiting for Claude Code startup (max 30 seconds)..."
 
-    # Wait for Boss startup (max 30 seconds)
-    for i in {1..30}; do
-        if tmux capture-pane -t boss:main -p | grep -q "bypass permissions"; then
-            echo "  └─ Boss Claude Code startup confirmed (${i}s)"
-            break
-        fi
-        sleep 1
-    done
+    if [ "$STABLE_MODE" = true ]; then
+        wait_for_tmux_output "boss:main" "Boss" "bypass permissions" "$STABLE_STARTUP_TIMEOUT_SECONDS" || true
+        wait_for_tmux_output "grid:agents.${PANE_BASE}" "Operator" "bypass permissions" "$STABLE_STARTUP_TIMEOUT_SECONDS" || true
+        for i in {1..8}; do
+            p=$((PANE_BASE + i))
+            wait_for_tmux_output "grid:agents.${p}" "Agent ${i}" "bypass permissions" "$STABLE_STARTUP_TIMEOUT_SECONDS" || true
+        done
+    else
+        # Wait for Boss startup (max 30 seconds)
+        for i in {1..30}; do
+            if tmux capture-pane -t boss:main -p | grep -q "bypass permissions"; then
+                echo "  └─ Boss Claude Code startup confirmed (${i}s)"
+                break
+            fi
+            sleep 1
+        done
+    fi
 
     # Load instructions to Boss
     log_info "  └─ Loading Boss instructions..."
