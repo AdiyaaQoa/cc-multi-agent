@@ -507,68 +507,108 @@ done
 RESULTS+=("実行権限: OK")
 
 # ============================================================
-# STEP 10: bashrc alias設定
+# STEP 10: シェル alias設定
 # ============================================================
 log_step "STEP 10: alias設定"
 
-# alias追加対象ファイル
-BASHRC_FILE="$HOME/.bashrc"
-
-# aliasが既に存在するかチェックし、なければ追加
+# ユーザーのデフォルトシェルを検出
+USER_SHELL=$(basename "$SHELL")
 ALIAS_ADDED=false
 
-# csb alias (Bossウィンドウの起動)
-if [ -f "$BASHRC_FILE" ]; then
+# alias追加の共通関数
+add_aliases_to_file() {
+    local RC_FILE="$1"
+    local SHELL_NAME="$2"
+    local FILE_ALIAS_ADDED=false
+
+    if [ ! -f "$RC_FILE" ]; then
+        log_info "$RC_FILE が存在しないため作成します"
+        touch "$RC_FILE"
+    fi
+
     EXPECTED_CSB="alias csb='tmux attach-session -t boss'"
-    if ! grep -q "alias csb=" "$BASHRC_FILE" 2>/dev/null; then
+    EXPECTED_CSG="alias csg='tmux attach-session -t grid'"
+
+    # csb alias (Bossウィンドウの起動)
+    if ! grep -q "alias csb=" "$RC_FILE" 2>/dev/null; then
         # alias が存在しない → 新規追加
-        echo "" >> "$BASHRC_FILE"
-        echo "# multi-agent-grid aliases (added by first_setup.sh)" >> "$BASHRC_FILE"
-        echo "$EXPECTED_CSB" >> "$BASHRC_FILE"
-        log_info "alias csb を追加しました（Bossウィンドウの起動）"
-        ALIAS_ADDED=true
-    elif ! grep -qF "$EXPECTED_CSB" "$BASHRC_FILE" 2>/dev/null; then
+        echo "" >> "$RC_FILE"
+        echo "# multi-agent-grid aliases (added by first_setup.sh)" >> "$RC_FILE"
+        echo "$EXPECTED_CSB" >> "$RC_FILE"
+        log_info "[$SHELL_NAME] alias csb を追加しました（Bossウィンドウの起動）"
+        FILE_ALIAS_ADDED=true
+    elif ! grep -qF "$EXPECTED_CSB" "$RC_FILE" 2>/dev/null; then
         # alias は存在するがパスが異なる → 更新
-        if sed -i "s|alias csb=.*|$EXPECTED_CSB|" "$BASHRC_FILE" 2>/dev/null; then
-            log_info "alias csb を更新しました（パス変更検出）"
+        if sed -i '' "s|alias csb=.*|$EXPECTED_CSB|" "$RC_FILE" 2>/dev/null || sed -i "s|alias csb=.*|$EXPECTED_CSB|" "$RC_FILE" 2>/dev/null; then
+            log_info "[$SHELL_NAME] alias csb を更新しました（パス変更検出）"
         else
-            log_warn "alias csb の更新に失敗しました"
+            log_warn "[$SHELL_NAME] alias csb の更新に失敗しました"
         fi
-        ALIAS_ADDED=true
+        FILE_ALIAS_ADDED=true
     else
-        log_info "alias csb は既に正しく設定されています"
+        log_info "[$SHELL_NAME] alias csb は既に正しく設定されています"
     fi
 
     # csg alias (Operator・Agentウィンドウの起動)
-    EXPECTED_CSG="alias csg='tmux attach-session -t grid'"
-    if ! grep -q "alias csg=" "$BASHRC_FILE" 2>/dev/null; then
-        if [ "$ALIAS_ADDED" = false ]; then
-            echo "" >> "$BASHRC_FILE"
-            echo "# multi-agent-grid aliases (added by first_setup.sh)" >> "$BASHRC_FILE"
+    if ! grep -q "alias csg=" "$RC_FILE" 2>/dev/null; then
+        if [ "$FILE_ALIAS_ADDED" = false ]; then
+            echo "" >> "$RC_FILE"
+            echo "# multi-agent-grid aliases (added by first_setup.sh)" >> "$RC_FILE"
         fi
-        echo "$EXPECTED_CSG" >> "$BASHRC_FILE"
-        log_info "alias csg を追加しました（Operator・Agentウィンドウの起動）"
-        ALIAS_ADDED=true
-    elif ! grep -qF "$EXPECTED_CSG" "$BASHRC_FILE" 2>/dev/null; then
-        if sed -i "s|alias csg=.*|$EXPECTED_CSG|" "$BASHRC_FILE" 2>/dev/null; then
-            log_info "alias csg を更新しました（パス変更検出）"
+        echo "$EXPECTED_CSG" >> "$RC_FILE"
+        log_info "[$SHELL_NAME] alias csg を追加しました（Operator・Agentウィンドウの起動）"
+        FILE_ALIAS_ADDED=true
+    elif ! grep -qF "$EXPECTED_CSG" "$RC_FILE" 2>/dev/null; then
+        if sed -i '' "s|alias csg=.*|$EXPECTED_CSG|" "$RC_FILE" 2>/dev/null || sed -i "s|alias csg=.*|$EXPECTED_CSG|" "$RC_FILE" 2>/dev/null; then
+            log_info "[$SHELL_NAME] alias csg を更新しました（パス変更検出）"
         else
-            log_warn "alias csg の更新に失敗しました"
+            log_warn "[$SHELL_NAME] alias csg の更新に失敗しました"
         fi
-        ALIAS_ADDED=true
+        FILE_ALIAS_ADDED=true
     else
-        log_info "alias csg は既に正しく設定されています"
+        log_info "[$SHELL_NAME] alias csg は既に正しく設定されています"
     fi
-else
-    log_warn "$BASHRC_FILE が見つかりません"
-fi
+
+    if [ "$FILE_ALIAS_ADDED" = true ]; then
+        ALIAS_ADDED=true
+    fi
+}
+
+# シェルに応じてalias設定
+case "$USER_SHELL" in
+    zsh)
+        log_info "zsh を検出しました"
+        add_aliases_to_file "$HOME/.zshrc" "zsh"
+        ;;
+    bash)
+        log_info "bash を検出しました"
+        add_aliases_to_file "$HOME/.bashrc" "bash"
+        ;;
+    *)
+        log_info "シェル: $USER_SHELL（bash/zsh両方に設定します）"
+        # 両方に設定（どちらを使うかわからないため）
+        if [ -f "$HOME/.bashrc" ] || [ -f "$HOME/.bash_profile" ]; then
+            add_aliases_to_file "$HOME/.bashrc" "bash"
+        fi
+        if [ -f "$HOME/.zshrc" ]; then
+            add_aliases_to_file "$HOME/.zshrc" "zsh"
+        fi
+        ;;
+esac
 
 if [ "$ALIAS_ADDED" = true ]; then
     log_success "alias設定を追加しました"
     log_warn "alias を反映するには、以下のいずれかを実行してください："
-    log_info "  1. source ~/.bashrc"
-    log_info "  2. PowerShell で 'wsl --shutdown' してからターミナルを開き直す"
-    log_info "  ※ ウィンドウを閉じるだけでは WSL が終了しないため反映されません"
+    if [ "$USER_SHELL" = "zsh" ]; then
+        log_info "  1. source ~/.zshrc"
+    else
+        log_info "  1. source ~/.bashrc"
+    fi
+    log_info "  2. ターミナルを再起動する"
+    if [ "$IS_WSL" = true ]; then
+        log_info "  3. (WSL) PowerShell で 'wsl --shutdown' してからターミナルを開き直す"
+        log_info "  ※ ウィンドウを閉じるだけでは WSL が終了しないため反映されません"
+    fi
 fi
 
 RESULTS+=("alias設定: OK")
